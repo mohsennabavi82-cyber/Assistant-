@@ -605,13 +605,31 @@ function analyticsPage(){
     </div>
     <div class="card"><div class="card-head"><h3>${ic('spark',18)}پیشنهاد هوشمند</h3><span class="tag low">AI</span></div>
       <div class="ring-mini"><div class="ring-wrap" style="width:120px;height:120px;margin:0"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="54"/><circle class="ring-fg" cx="60" cy="60" r="54" stroke-dasharray="${C}" stroke-dashoffset="${off}"/></svg><div class="ring-num" style="font-size:24px">${faNum(rate)}٪</div></div></div>
-      <div class="insight"><div class="insight-title">${ic('spark',15)}مرور پیشرفت</div><p>${total?`از ${faNum(total)} وظیفه، ${faNum(done)} مورد تکمیل شده است. برای بالا بردن تمرکز، یک کار مهم را برای بازه بعد انتخاب کن.`:'هنوز داده کافی برای پیشنهاد شخصی وجود ندارد؛ با ثبت چند وظیفه، گزارش شکل می‌گیرد.'}</p></div>
-      
+      <div class="insight"><div class="insight-title">${ic('spark',15)}پیشنهاد بر اساس آمار تو</div><p id="smartSuggestion" aria-live="polite">در حال آماده‌کردن پیشنهاد…</p><button class="btn btn-ghost" type="button" data-refresh-insight>پیشنهاد تازه</button></div>
+      <p class="note-small">فقط آمار کلی کارها برای ساخت پیشنهاد فرستاده می‌شود؛ عنوان وظایف و یادداشت‌ها ارسال نمی‌شوند.</p>
     </div>
     <div class="card rep-wide"><div class="card-head"><h3>${ic('bolt',18)}تعریف فرمان گزارش</h3></div>
-      <div class="command-box">/report <span>[week | month]</span><br>محاسبه شاخص‌ها از داده واقعی + پیشنهاد AI<br><span>در این نسخه، گزارش به داده‌های محلی محدود است.</span></div>
+      <div class="command-box">/report <span>[week | month]</span><br>گزارش کارها و پیشنهاد هوشمند متناسب با آمار حساب</div>
     </div>
   </div>`;
+}
+let smartSuggestionRequest=0;
+async function loadSmartSuggestion(){
+  const target=document.getElementById('smartSuggestion');if(!target)return;
+  const requestId=++smartSuggestionRequest;
+  target.textContent='در حال آماده‌کردن پیشنهاد…';
+  const tasks=Array.isArray(data.tasks)?data.tasks:[],done=tasks.filter(t=>t.done).length,open=tasks.length-done;
+  const now=today(),horizon=new Date();horizon.setDate(horizon.getDate()+7);
+  const until=`${horizon.getFullYear()}-${String(horizon.getMonth()+1).padStart(2,'0')}-${String(horizon.getDate()).padStart(2,'0')}`;
+  const overdue=tasks.filter(t=>!t.done&&t.date&&t.date<now).length;
+  const upcoming=tasks.filter(t=>!t.done&&t.date&&t.date>=now&&t.date<=until).length;
+  const prompt=`برای کاربر LIFEOS یک پیشنهاد کوتاه، عملی و دلگرم‌کننده به فارسی بنویس. فقط از این آمار ناشناس استفاده کن و هیچ اطلاعات شخصی یا عنوان کاری فرض نکن. اگر هنوز کاری ثبت نشده، پیشنهاد بده با یک کار کوچک شروع کند. از قضاوت یا لحن سرزنش‌گر پرهیز کن. آمار: کل کارها ${tasks.length}، انجام‌شده ${done}، باز ${open}، عقب‌افتاده ${overdue}، موعددار در ۷ روز آینده ${upcoming}، یادداشت‌ها ${Array.isArray(data.notes)?data.notes.length:0}، رویدادها ${Array.isArray(data.events)?data.events.length:0}، یادآورها ${Array.isArray(data.reminders)?data.reminders.length:0}. پاسخ حداکثر سه جمله باشد.`;
+  try{
+    const answer=await window.askOpenRouter(prompt);
+    if(requestId===smartSuggestionRequest&&document.getElementById('smartSuggestion'))target.textContent=answer;
+  }catch(err){
+    if(requestId===smartSuggestionRequest&&document.getElementById('smartSuggestion'))target.textContent=err.message||'پیشنهاد آماده نشد. دوباره تلاش کن.';
+  }
 }
 function researchPage(){
   return head('دستیار هوشمند','پرسش‌ها و پاسخ‌های هوشمند')+
@@ -630,6 +648,7 @@ function render(anim){
   el.classList.toggle('anim',!!anim);
   if(current==='tasks')tasksRender();
   if(current==='notes')notesRender();
+  if(current==='analytics')void loadSmartSuggestion();
   refreshBell();
 }
 function refreshBell(){const n=data.reminders.filter(r=>r.date===today()).length;document.getElementById('bellDot').hidden=!n}
@@ -668,6 +687,7 @@ document.addEventListener('click',e=>{
   if(el=c('[data-filter]')){tf=el.dataset.filter;render();return}
   if(el=c('[data-month]')){jm.m+=Number(el.dataset.month);if(jm.m>12){jm.m=1;jm.y++}if(jm.m<1){jm.m=12;jm.y--}render();return}
   if(el=c('[data-day]')){selDay=el.dataset.day;if(current==='dashboard')setView('calendar');else render();return}
+  if(c('[data-refresh-insight]')){void loadSmartSuggestion();return}
   if(c('[data-logout]')){if(window.lifeosSignOut){void window.lifeosSignOut().then(()=>toast('از حساب خارج شدی')).catch(err=>toast(err.message||'خروج انجام نشد'))}else toast('برای خروج، ابتدا وارد حسابت شو');return}
   if(c('#bell')){const n=data.reminders.filter(r=>r.date===today()).length;toast(n?`${faNum(n)} یادآور برای امروز داری`:'اعلان جدیدی نداری');return}
 });
