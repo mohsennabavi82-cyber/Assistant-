@@ -333,9 +333,13 @@ button{cursor:pointer;background:none;border:0}
 </head>
 <body>
 <style>
-#authGate{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;overflow:auto;background:#070a1c;padding:24px;box-sizing:border-box}#authGate[hidden]{display:none}.authbox{box-sizing:border-box;width:min(388px,100%);padding:30px 26px 34px;border:1px solid rgba(107,120,255,.28);border-radius:18px;background:linear-gradient(145deg,rgba(26,35,77,.94),rgba(18,24,54,.96));box-shadow:0 24px 80px rgba(0,0,0,.24);color:#f3f4ff;font-family:Tahoma,sans-serif;text-align:center}.auth-logo{display:block;width:58px;height:36px;margin:0 auto 12px}.authbox h1{margin:0;font-size:25px;letter-spacing:.02em}.auth-subtitle{margin:8px 0 28px!important;color:#8db0ff!important;font-size:12px}.authbox .auth-help{margin:0 0 18px;text-align:right;color:#aab8ee;line-height:1.9;font-size:13px}.authbox label{display:block;text-align:right;margin:0 0 7px;font-size:13px;font-weight:700}.authbox input{box-sizing:border-box;width:100%;height:44px;padding:0 13px;margin:0 0 14px;border:1px solid rgba(109,124,255,.28);border-radius:11px;background:rgba(8,14,39,.68);color:white;font:14px Tahoma,sans-serif;outline:none}.authbox input:focus{border-color:#735cff;box-shadow:0 0 0 3px rgba(111,83,255,.15)}.authbox input::placeholder{color:#8290b8}.auth-actions{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:9px;margin-top:6px}.authbox button{min-height:44px;padding:0 19px;border:0;border-radius:12px;background:linear-gradient(100deg,#633bf0,#8456ff);box-shadow:0 8px 25px rgba(100,65,255,.25);color:white;font:700 13px Tahoma,sans-serif;cursor:pointer}.authbox button[data-mode=signup]{background:rgba(91,105,170,.18);border:1px solid rgba(131,145,218,.25);box-shadow:none}.authbox button:hover{filter:brightness(1.08)}.auth-error{min-height:24px;color:#ff9aa8;text-align:right;line-height:1.7;font-size:12px}@media(max-width:480px){.authbox{padding:27px 22px 30px}}
+#authGate{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;overflow:auto;background:#070a1c;padding:24px;box-sizing:border-box}#authGate[hidden]{display:none}.authbox{box-sizing:border-box;width:min(388px,100%);padding:30px 26px 34px;border:1px solid rgba(107,120,255,.28);border-radius:18px;background:linear-gradient(145deg,rgba(26,35,77,.94),rgba(18,24,54,.96));box-shadow:0 24px 80px rgba(0,0,0,.24);color:#f3f4ff;font-family:Tahoma,sans-serif;text-align:center}.auth-logo{display:block;width:68px;height:42px;margin:0 auto 12px}#authNameField[hidden]{display:none}.authbox h1{margin:0;font-size:25px;letter-spacing:.02em}.auth-subtitle{margin:8px 0 28px!important;color:#8db0ff!important;font-size:12px}.authbox .auth-help{margin:0 0 18px;text-align:right;color:#aab8ee;line-height:1.9;font-size:13px}.authbox label{display:block;text-align:right;margin:0 0 7px;font-size:13px;font-weight:700}.authbox input{box-sizing:border-box;width:100%;height:44px;padding:0 13px;margin:0 0 14px;border:1px solid rgba(109,124,255,.28);border-radius:11px;background:rgba(8,14,39,.68);color:white;font:14px Tahoma,sans-serif;outline:none}.authbox input:focus{border-color:#735cff;box-shadow:0 0 0 3px rgba(111,83,255,.15)}.authbox input::placeholder{color:#8290b8}.auth-actions{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:9px;margin-top:6px}.authbox button{min-height:44px;padding:0 19px;border:0;border-radius:12px;background:linear-gradient(100deg,#633bf0,#8456ff);box-shadow:0 8px 25px rgba(100,65,255,.25);color:white;font:700 13px Tahoma,sans-serif;cursor:pointer}.authbox button[data-mode=signup]{background:rgba(91,105,170,.18);border:1px solid rgba(131,145,218,.25);box-shadow:none}.authbox button:hover{filter:brightness(1.08)}.auth-error{min-height:24px;color:#ff9aa8;text-align:right;line-height:1.7;font-size:12px}@media(max-width:480px){.authbox{padding:27px 22px 30px}}
 </style>
-<div id="authGate"><form class="authbox" id="authForm"><svg class="auth-logo" viewBox="0 0 64 40" fill="none" aria-label="لوگوی LIFEOS"><defs><linearGradient id="authLogoGrad" x1="5" y1="20" x2="59" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#28d7ee"/><stop offset="1" stop-color="#8b5cff"/></linearGradient></defs><path d="M32 20C25 11 20 6 14 6a14 14 0 1 0 0 28c7 0 12-5 18-14Zm0 0C39 11 44 6 50 6a14 14 0 1 1 0 28c-7 0-12-5-18-14Z" stroke="url(#authLogoGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><h1>LIFEOS</h1><p class="auth-subtitle">Your Personal AI Assistant</p><p class="auth-help">برای ادامه، وارد حساب خود شوید یا حساب جدید بسازید.</p><label for="authEmail">ایمیل</label><input id="authEmail" type="email" placeholder="name@example.com" autocomplete="email" required><label for="authPassword">گذرواژه</label><input id="authPassword" type="password" minlength="6" placeholder="حداقل ۶ نویسه" autocomplete="current-password" required><div class="auth-error" id="authError" aria-live="polite"></div><div class="auth-actions"><button type="submit" data-mode="login">ورود</button><button type="submit" data-mode="signup">ساخت حساب</button></div></form></div>
+<style>
+.settings-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.settings-layout .card{align-self:start}.settings-layout .form-grid{gap:14px}.settings-layout .field[readonly]{opacity:.75;cursor:default}.settings-layout .note-small{line-height:1.9}.settings-layout [data-logout]{margin-top:10px}
+@media(max-width:720px){.settings-layout{grid-template-columns:1fr}}
+</style>
+<div id="authGate"><form class="authbox" id="authForm"><svg class="auth-logo" viewBox="-4 0 72 40" fill="none" aria-label="لوگوی LIFEOS"><defs><linearGradient id="authLogoGrad" x1="0" y1="20" x2="64" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#28d7ee"/><stop offset="1" stop-color="#8b5cff"/></linearGradient></defs><path d="M32 20C25 11 20 6 14 6a14 14 0 1 0 0 28c7 0 12-5 18-14Zm0 0C39 11 44 6 50 6a14 14 0 1 1 0 28c-7 0-12-5-18-14Z" stroke="url(#authLogoGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><h1>LIFEOS</h1><p class="auth-subtitle">Your Personal AI Assistant</p><p class="auth-help" id="authHelp">برای ادامه، وارد حساب خود شوید یا حساب جدید بسازید.</p><div id="authNameField" hidden><label for="authName">نامی که دوست داری در برنامه ببینی</label><input id="authName" type="text" maxlength="60" autocomplete="name" placeholder="مثلاً مهسا"></div><label for="authEmail">ایمیل</label><input id="authEmail" type="email" placeholder="name@example.com" autocomplete="email" required><label for="authPassword">گذرواژه</label><input id="authPassword" type="password" minlength="6" placeholder="حداقل ۶ نویسه" autocomplete="current-password" required><div class="auth-error" id="authError" aria-live="polite"></div><div class="auth-actions"><button type="submit" data-mode="login">ورود</button><button type="submit" data-mode="signup">ساخت حساب</button></div></form></div>
 
 <!-- shared SVG defs (kept outside hidden pages so gradients always resolve) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -385,6 +389,7 @@ button{cursor:pointer;background:none;border:0}
     <section id="notes" class="page"></section>
     <section id="analytics" class="page"></section>
     <section id="research" class="page"></section>
+    <section id="settings" class="page"></section>
   </main>
 </div>
 
@@ -394,9 +399,10 @@ button{cursor:pointer;background:none;border:0}
 
 <script>
 (()=>{
-const USER='mohsen';
+let USER='دوست';
 const ICON={
   home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1-1.7 1.7-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5v.2h-2.4v-.2a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.9.3l-.1.1L8 17l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H6.7v-2.4h.2a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9L8 8.6 9.7 7l.1.1a1.7 1.7 0 001.9.3 1.7 1.7 0 001-1.5v-.2h2.4v.2a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1 1.7 1.7-.1.1a1.7 1.7 0 00-.3 1.9 1.7 1.7 0 001.5 1h.2v2.4h-.2a1.7 1.7 0 00-1.5 1z"/>',
   tasks:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/>',
   calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
   note:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
@@ -416,32 +422,18 @@ const ICON={
   alert:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>'
 };
 const ic=(n,s=20)=>`<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
-const NAV=[['dashboard','home','داشبورد','داشبورد'],['tasks','tasks','کارها و وظایف','وظایف'],['calendar','calendar','تقویم','تقویم'],['notes','note','حافظه شخصی','یادداشت'],['analytics','chart','گزارش‌ها','گزارش'],['research','search','تحقیق وب','تحقیق']];
+const NAV=[['dashboard','home','داشبورد','داشبورد'],['tasks','tasks','کارها و وظایف','وظایف'],['calendar','calendar','تقویم','تقویم'],['notes','note','حافظه شخصی','یادداشت'],['analytics','chart','گزارش‌ها','گزارش'],['research','search','تحقیق وب','تحقیق'],['settings','settings','تنظیمات','تنظیم']];
 const titles=Object.fromEntries(NAV.map(x=>[x[0],x[2]]));
 const PRI={high:'مهم',mid:'معمولی',low:'کم‌اولویت'};
 const MONTHS=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 const DAYS=['ش','ی','د','س','چ','پ','ج'];
 
 /* ---------- storage ---------- */
-const key='lifeos_preview_v1';
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
-const t0=Date.now();
-const starter={
-  tasks:[{id:1,title:'بررسی برنامه‌های این هفته',date:today(),priority:'high',done:false},{id:2,title:'مرتب‌کردن یادداشت‌های پروژه',date:today(),priority:'mid',done:false},{id:3,title:'مطالعه ۲۰ دقیقه',date:today(),priority:'low',done:true}],
-  notes:[{id:1,title:'ایده‌های LIFEOS',body:'تمرکز روی گزارش‌های واقعی و پیشنهادهای قابل اجرا.',date:today()},{id:2,title:'یادداشت روزانه',body:'کارهای مهم را اول روز مرور کنم.',date:today()}],
-  events:[{id:1,title:'برنامه‌ریزی هفتگی',date:today(),time:'09:30'},{id:2,title:'مرور اهداف',date:today(),time:'17:00'}],
-  reminders:[{id:1,title:'استراحت کوتاه',time:'11:30',date:today()}],
-  activity:[
-    {id:1,type:'done',text:'انجام شد: مطالعه ۲۰ دقیقه',ts:t0},
-    {id:2,type:'task',text:'کار جدید: مرتب‌کردن یادداشت‌های پروژه',ts:t0-1000},
-    {id:3,type:'task',text:'کار جدید: بررسی برنامه‌های این هفته',ts:t0-2000},
-    {id:4,type:'reminder',text:'یادآور جدید: استراحت کوتاه',ts:t0-3000},
-    {id:5,type:'event',text:'رویداد جدید: برنامه‌ریزی هفتگی',ts:t0-4000}
-  ]
-};
-let data;try{data=JSON.parse(localStorage.getItem(key))||structuredClone(starter)}catch{data=structuredClone(starter)}
+const emptyData=()=>({tasks:[],notes:[],events:[],reminders:[],activity:[]});
+let data=emptyData();
 ['tasks','notes','events','reminders','activity'].forEach(k=>{if(!Array.isArray(data[k]))data[k]=[]});
-const save=()=>{try{localStorage.setItem(key,JSON.stringify(data))}catch{};window.persistLifeosCloud?.(data)};
+const save=()=>window.persistLifeosCloud?.(data);
 const log=(type,text)=>{data.activity.unshift({id:Date.now(),type,text,ts:Date.now()});data.activity=data.activity.slice(0,30)};
 
 /* ---------- helpers ---------- */
@@ -470,6 +462,7 @@ function nav(){
   document.getElementById('mobileNav').innerHTML=NAV.map(([id,icon,,short])=>`<button class="${current===id?'active':''}" data-view="${id}">${ic(icon,20)}${short}</button>`).join('');
 }
 function setView(id){current=id;window.applyLifeosCloudData=(d)=>{data=d;['tasks','notes','events','reminders','activity'].forEach(k=>{if(!Array.isArray(data[k]))data[k]=[]});render()}; nav();render(true);window.scrollTo({top:0,behavior:'smooth'})}
+window.lifeosSetDisplayName=(name)=>{USER=String(name||'دوست').trim().slice(0,60)||'دوست';const u=document.getElementById('uname'),a=document.getElementById('avatar'),g=document.querySelector('.hero-text h2'),n=document.getElementById('settingsName');if(u)u.textContent=USER;if(a)a.textContent=USER.charAt(0);if(g)g.innerHTML=`سلام <bdi>${esc(USER)}</bdi>! 👋`;if(n)n.value=USER};
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2300)}
 
 /* ---------- components ---------- */
@@ -625,10 +618,15 @@ function researchPage(){
   `<div class="card deco"><form id="researchForm" class="form-grid"><label>سؤال تحقیق<textarea id="researchQuestion" rows="4" maxlength="300" placeholder="مثلاً: روش‌های ساده برای برنامه‌ریزی هفتگی چیست؟"></textarea></label><div class="form-actions"><button class="btn btn-primary">${ic('search',16)}ثبت درخواست</button></div></form><div id="researchResult"></div></div>
   <div class="card" style="margin-top:16px"><div class="card-head"><h3>${ic('link',18)}اتصال ربات تلگرام</h3></div><p class="note-small">حساب LIFEOS را امن و موقت به چت تلگرام خود پیوند بده. سپس ربات می‌تواند کارها را با داده‌های همین حساب همگام کند.</p><button class="btn btn-primary" type="button" onclick="window.connectLifeosTelegram?.()">اتصال به @MassistantNbot</button><div id="telegramStatus" style="margin-top:12px"></div><div class="command-box" style="margin-top:14px">بعد از پیوند: <span>/tasks</span>، <span>/add متن کار</span>، <span>/done شناسه</span>، <span>/report</span></div></div>`;
 }
+function settingsPage(){
+  const email=window.lifeosUser?.email||'';
+  return head('تنظیمات','مدیریت نام نمایشی و حساب کاربری')+
+  `<div class="settings-layout"><section class="card deco"><div class="card-head"><h3>${ic('settings',18)}پروفایل</h3></div><form id="settingsForm" class="form-grid"><label>نام نمایشی<input class="field" id="settingsName" maxlength="60" required value="${esc(USER)}" placeholder="نامی که در برنامه دیده می‌شود"></label><label>ایمیل حساب<input class="field" value="${esc(email)}" readonly></label><div class="form-actions"><button class="btn btn-primary">ذخیره تغییرات</button></div></form><p class="note-small" id="settingsStatus" aria-live="polite"></p></section><section class="card"><div class="card-head"><h3>${ic('link',18)}حساب و دسترسی</h3></div><p class="note-small">اطلاعات هر حساب جداگانه نگهداری می‌شود. خروج از حساب، داده‌های ذخیره‌شده را حذف نمی‌کند.</p><button class="btn btn-ghost" type="button" data-logout>خروج از حساب</button></section></div>`;
+}
 function render(anim){
   document.querySelectorAll('.page').forEach(p=>{const on=p.id===current;p.classList.toggle('active',on);if(!on)p.innerHTML=''});
   const el=document.getElementById(current);
-  el.innerHTML=({dashboard,tasks:tasksPage,calendar:calendarPage,notes:notesPage,analytics:analyticsPage,research:researchPage})[current]();
+  el.innerHTML=({dashboard,tasks:tasksPage,calendar:calendarPage,notes:notesPage,analytics:analyticsPage,research:researchPage,settings:settingsPage})[current]();
   el.classList.toggle('anim',!!anim);
   if(current==='tasks')tasksRender();
   if(current==='notes')notesRender();
@@ -670,7 +668,7 @@ document.addEventListener('click',e=>{
   if(el=c('[data-filter]')){tf=el.dataset.filter;render();return}
   if(el=c('[data-month]')){jm.m+=Number(el.dataset.month);if(jm.m>12){jm.m=1;jm.y++}if(jm.m<1){jm.m=12;jm.y--}render();return}
   if(el=c('[data-day]')){selDay=el.dataset.day;if(current==='dashboard')setView('calendar');else render();return}
-  if(c('[data-logout]')){toast('در حالت پیش‌نمایش، خروج فعال نیست');return}
+  if(c('[data-logout]')){if(window.lifeosSignOut){void window.lifeosSignOut().then(()=>toast('از حساب خارج شدی')).catch(err=>toast(err.message||'خروج انجام نشد'))}else toast('برای خروج، ابتدا وارد حسابت شو');return}
   if(c('#bell')){const n=data.reminders.filter(r=>r.date===today()).length;toast(n?`${faNum(n)} یادآور برای امروز داری`:'اعلان جدیدی نداری');return}
 });
 document.addEventListener('change',e=>{
@@ -693,6 +691,10 @@ document.getElementById('globalSearch').addEventListener('keydown',e=>{
   e.target.blur();
 });
 document.addEventListener('submit',e=>{
+  if(e.target.id==='settingsForm'){
+    e.preventDefault();const status=document.getElementById('settingsStatus'),name=document.getElementById('settingsName').value.trim();
+    status.textContent='در حال ذخیره…';window.lifeosUpdateName?.(name).then(()=>{status.textContent='نام نمایشی ذخیره شد ✅'}).catch(err=>{status.textContent=err.message||'ذخیرهٔ نام انجام نشد'});return;
+  }
   if(e.target.id==='researchForm'){
     e.preventDefault();const q=document.getElementById('researchQuestion').value.trim(),out=document.getElementById('researchResult');if(!q)return;
     out.innerHTML=`<div class="insight" style="margin-top:16px"><div class="insight-title">${ic('spark',15)}در حال دریافت پاسخ…</div><p>پرسش متنی به OpenRouter فرستاده می‌شود.</p></div>`;
