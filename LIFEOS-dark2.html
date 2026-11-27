@@ -278,6 +278,22 @@ button{cursor:pointer;background:none;border:0}
 .form-grid input,.form-grid textarea,.form-grid select{display:block;width:100%;margin-top:6px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-actions{display:flex;gap:8px;margin-top:18px}
+.jalali-date-wrap{display:block;position:relative;margin-top:6px}
+.jalali-date-wrap .field{margin-top:0!important;padding-left:48px!important;cursor:pointer}
+.jalali-date-toggle{position:absolute;left:7px;top:7px;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;color:#b9adff;background:rgba(124,92,255,.14)}
+.jalali-date-toggle:hover{background:rgba(124,92,255,.28);color:#fff}
+.jalali-picker{position:absolute;z-index:20;top:calc(100% + 8px);right:0;width:min(310px,calc(100vw - 64px));padding:13px;border-radius:15px;border:1px solid rgba(165,155,255,.4);background:#15183f;box-shadow:0 16px 42px rgba(0,0,0,.55)}
+.jalali-picker[hidden]{display:none}
+.jalali-picker-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.jalali-picker-head strong{font-size:13px}
+.jalali-picker-nav{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;color:#d7d1ff;background:rgba(255,255,255,.07)}
+.jalali-picker-nav:hover{background:rgba(124,92,255,.3)}
+.jalali-picker-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.jalali-picker-week{padding:5px 0;color:var(--dim);font-size:11px}
+.jalali-picker-day{height:34px;border-radius:9px;color:#e5e6ff;font-size:12px}
+.jalali-picker-day:hover{background:rgba(124,92,255,.25)}
+.jalali-picker-day.selected{background:linear-gradient(135deg,#7c5cff,#5547ee);color:#fff;font-weight:700}
+.jalali-picker-day.today:not(.selected){outline:1px solid #35c7e7;color:#7de8fa}
 
 /* modal / toast */
 .modal{border:0;padding:0;max-width:460px;width:calc(100% - 32px);border-radius:22px;color:var(--ink);background:linear-gradient(165deg,#241f66,#0e1034);box-shadow:0 0 0 1px rgba(165,155,255,.3),0 30px 90px rgba(0,0,0,.6)}
@@ -439,12 +455,24 @@ const log=(type,text)=>{data.activity.unshift({id:Date.now(),type,text,ts:Date.n
 /* ---------- helpers ---------- */
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const faNum=n=>new Intl.NumberFormat('fa-IR',{useGrouping:false}).format(n);
-const fmtDate=s=>{if(!s)return 'بدون موعد';try{return new Intl.DateTimeFormat('fa-IR',{month:'short',day:'numeric'}).format(new Date(s+'T12:00:00'))}catch{return s}};
+const fmtDate=s=>{if(!s)return 'بدون موعد';try{const [gy,gm,gd]=s.split('-').map(Number),[jy,jm,jd]=g2j(gy,gm,gd);return `${faNum(jd)} ${MONTHS[jm-1]} ${faNum(jy)}`}catch{return s}};
 const ago=ts=>{const s=(Date.now()-ts)/1000;if(s<60)return 'همین حالا';if(s<3600)return faNum(Math.floor(s/60))+' دقیقه پیش';if(s<86400)return faNum(Math.floor(s/3600))+' ساعت پیش';return faNum(Math.floor(s/86400))+' روز پیش'};
 
 /* Jalali conversion */
 function g2j(gy,gm,gd){const gdm=[0,31,59,90,120,151,181,212,243,273,304,334];const gy2=gm>2?gy+1:gy;let days=355666+365*gy+Math.floor((gy2+3)/4)-Math.floor((gy2+99)/100)+Math.floor((gy2+399)/400)+gd+gdm[gm-1];let jy=-1595+33*Math.floor(days/12053);days%=12053;jy+=4*Math.floor(days/1461);days%=1461;if(days>365){jy+=Math.floor((days-1)/365);days=(days-1)%365}const jm=days<186?1+Math.floor(days/31):7+Math.floor((days-186)/30);const jd=1+(days<186?days%31:(days-186)%30);return[jy,jm,jd]}
 function j2g(jy,jm,jd){jy+=1595;let days=-355668+365*jy+Math.floor(jy/33)*8+Math.floor(((jy%33)+3)/4)+jd+(jm<7?(jm-1)*31:(jm-7)*30+186);let gy=400*Math.floor(days/146097);days%=146097;if(days>36524){gy+=100*Math.floor(--days/36524);days%=36524;if(days>=365)days++}gy+=4*Math.floor(days/1461);days%=1461;if(days>365){gy+=Math.floor((days-1)/365);days=(days-1)%365}let gd=days+1;const sa=[0,31,(gy%4===0&&gy%100!==0)||gy%400===0?29:28,31,30,31,30,31,31,30,31,30,31];let gm;for(gm=0;gm<13;gm++){if(gd<=sa[gm])break;gd-=sa[gm]}return[gy,gm,gd]}
+
+function isoFromJalali(y,m,d){const [gy,gm,gd]=j2g(y,m,d);return `${gy}-${String(gm).padStart(2,'0')}-${String(gd).padStart(2,'0')}`}
+function jalaliDateField(name,label,iso){const [gy,gm,gd]=iso.split('-').map(Number),[jy,jm,jd]=g2j(gy,gm,gd);return `<label>${label}<span class="jalali-date-wrap"><input class="field jalali-date-display" type="text" value="${faNum(jy)}/${faNum(String(jm).padStart(2,'0'))}/${faNum(String(jd).padStart(2,'0'))}" readonly aria-label="${label} به تقویم شمسی"><input type="hidden" name="${name}" value="${iso}"><button type="button" class="jalali-date-toggle" data-jalali-toggle aria-label="انتخاب تاریخ شمسی">${ic('calendar',18)}</button><span class="jalali-picker" data-jalali-picker hidden></span></span></label>`}
+function renderJalaliPicker(picker,year,month,selected){
+  const first=j2g(year,month,1),firstDate=new Date(Date.UTC(first[0],first[1]-1,first[2],12));
+  const next=month===12?j2g(year+1,1,1):j2g(year,month+1,1),nextDate=new Date(Date.UTC(next[0],next[1]-1,next[2],12));
+  const start=(firstDate.getUTCDay()+1)%7,len=Math.round((nextDate-firstDate)/864e5),todayIso=today();
+  const week=['ش','ی','د','س','چ','پ','ج'].map(x=>`<span class="jalali-picker-week">${x}</span>`).join('');
+  let days='<span></span>'.repeat(start);
+  for(let d=1;d<=len;d++){const iso=isoFromJalali(year,month,d);days+=`<button type="button" class="jalali-picker-day ${iso===selected?'selected':''} ${iso===todayIso?'today':''}" data-jalali-day="${iso}">${faNum(d)}</button>`}
+  picker.dataset.year=year;picker.dataset.month=month;picker.innerHTML=`<div class="jalali-picker-head"><button type="button" class="jalali-picker-nav" data-jalali-step="-1" aria-label="ماه قبل">‹</button><strong>${MONTHS[month-1]} ${faNum(year)}</strong><button type="button" class="jalali-picker-nav" data-jalali-step="1" aria-label="ماه بعد">›</button></div><div class="jalali-picker-grid">${week}${days}</div>`;
+}
 
 const nowD=new Date();const tj=g2j(nowD.getFullYear(),nowD.getMonth()+1,nowD.getDate());
 let jm={y:tj[0],m:tj[1]};
@@ -656,10 +684,10 @@ function refreshBell(){const n=data.reminders.filter(r=>r.date===today()).length
 /* ---------- modal ---------- */
 function modal(type,date){
   const d=date||today();let title='',fields='';
-  if(type==='task'){title='افزودن وظیفه';fields=`<label>عنوان وظیفه<input class="field" name="title" required maxlength="100" placeholder="مثلاً تماس با…"></label><div class="two"><label>موعد<input class="field" name="date" type="date" value="${d}"></label><label>اولویت<select name="priority"><option value="mid">معمولی</option><option value="high">مهم</option><option value="low">کم</option></select></label></div>`}
+  if(type==='task'){title='افزودن وظیفه';fields=`<label>عنوان وظیفه<input class="field" name="title" required maxlength="100" placeholder="مثلاً تماس با…"></label><div class="two">${jalaliDateField('date','موعد شمسی',d)}<label>اولویت<select name="priority"><option value="mid">معمولی</option><option value="high">مهم</option><option value="low">کم</option></select></label></div>`}
   else if(type==='note'){title='یادداشت جدید';fields=`<label>عنوان<input class="field" name="title" required maxlength="80" placeholder="عنوان یادداشت"></label><label>متن<textarea name="body" rows="4" required placeholder="آنچه می‌خواهی به خاطر بسپاری…"></textarea></label>`}
-  else if(type==='event'){title='رویداد جدید';fields=`<label>عنوان رویداد<input class="field" name="title" required maxlength="100" placeholder="مثلاً جلسه یا قرار"></label><div class="two"><label>تاریخ<input class="field" name="date" type="date" value="${d}"></label><label>زمان<input class="field" name="time" type="time" value="09:00"></label></div>`}
-  else{title='یادآور جدید';fields=`<label>عنوان یادآور<input class="field" name="title" required maxlength="100" placeholder="یادآوری برای…"></label><div class="two"><label>تاریخ<input class="field" name="date" type="date" value="${d}"></label><label>زمان<input class="field" name="time" type="time" value="09:00"></label></div>`}
+  else if(type==='event'){title='رویداد جدید';fields=`<label>عنوان رویداد<input class="field" name="title" required maxlength="100" placeholder="مثلاً جلسه یا قرار"></label><div class="two">${jalaliDateField('date','تاریخ شمسی',d)}<label>زمان<input class="field" name="time" type="time" value="09:00"></label></div>`}
+  else{title='یادآور جدید';fields=`<label>عنوان یادآور<input class="field" name="title" required maxlength="100" placeholder="یادآوری برای…"></label><div class="two">${jalaliDateField('date','تاریخ شمسی',d)}<label>زمان<input class="field" name="time" type="time" value="09:00"></label></div>`}
   const dlg=document.getElementById('modal');
   document.getElementById('modalContent').innerHTML=`<form id="entryForm"><h2>${title}</h2><div class="form-grid">${fields}</div><div class="form-actions"><button class="btn btn-primary">ذخیره</button><button type="button" class="btn btn-ghost" id="cancelModal">انصراف</button></div></form>`;
   dlg.showModal();
@@ -679,6 +707,10 @@ document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='
 document.addEventListener('click',e=>{
   const c=s=>e.target.closest(s);
   let el;
+  if(!c('.jalali-date-wrap'))document.querySelectorAll('.jalali-picker').forEach(p=>p.hidden=true);
+  if(el=c('[data-jalali-toggle]')){const wrap=el.closest('.jalali-date-wrap'),picker=wrap.querySelector('[data-jalali-picker]');if(picker.hidden){document.querySelectorAll('.jalali-picker').forEach(p=>p.hidden=true);const iso=wrap.querySelector('input[type="hidden"]').value,[gy,gm,gd]=iso.split('-').map(Number),[jy,jm]=g2j(gy,gm,gd);renderJalaliPicker(picker,jy,jm,iso);picker.hidden=false}else picker.hidden=true;return}
+  if(el=c('[data-jalali-step]')){const picker=el.closest('[data-jalali-picker]'),wrap=el.closest('.jalali-date-wrap'),iso=wrap.querySelector('input[type="hidden"]').value;let year=Number(picker.dataset.year),month=Number(picker.dataset.month)+Number(el.dataset.jalaliStep);if(month<1){month=12;year--}if(month>12){month=1;year++}renderJalaliPicker(picker,year,month,iso);return}
+  if(el=c('[data-jalali-day]')){const wrap=el.closest('.jalali-date-wrap'),iso=el.dataset.jalaliDay,[gy,gm,gd]=iso.split('-').map(Number),[jy,jm,jd]=g2j(gy,gm,gd);wrap.querySelector('input[type="hidden"]').value=iso;wrap.querySelector('.jalali-date-display').value=`${faNum(jy)}/${faNum(String(jm).padStart(2,'0'))}/${faNum(String(jd).padStart(2,'0'))}`;wrap.querySelector('[data-jalali-picker]').hidden=true;return}
   if(el=c('[data-view]')){setView(el.dataset.view);return}
   if(el=c('[data-add]')){modal(el.dataset.add,el.dataset.date);return}
   if(c('[data-go-search]')){const s=document.getElementById('globalSearch');window.scrollTo({top:0,behavior:'smooth'});s.focus();return}
