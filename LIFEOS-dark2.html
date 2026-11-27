@@ -544,7 +544,7 @@ function dashboard(){
 const faNumStr=s=>String(s||'—').replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 
 function tasksPage(){
-  return head('کارها و وظایف','وظایف تو در همین مرورگر ذخیره می‌شوند',addBtn('task','وظیفه جدید'))+
+  return head('کارها و وظایف','مدیریت و پیگیری وظایف',addBtn('task','وظیفه جدید'))+
   `<div class="toolbar"><input class="field search" id="taskSearch" placeholder="جستجو در وظایف…" value="${esc(tq)}"><div class="chips">${[['all','همه'],['open','باز'],['done','تکمیل‌شده']].map(([v,l])=>`<button class="chip ${tf===v?'on':''}" data-filter="${v}">${l}</button>`).join('')}</div></div>
   <div class="card" style="margin-bottom:16px"><div class="meta-row"><span>پیشرفت وظایف</span><b id="taskPct"></b></div><div class="bar-track"><span id="taskBar"></span></div></div>
   <div class="card" id="taskList"></div>`;
@@ -591,7 +591,7 @@ function analyticsPage(){
   const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const ts=data.tasks.filter(t=>t.date===ds);days.push({l:WD[d.getDay()],n:ts.length,d:ts.filter(t=>t.done).length,today:i===0})}
   const mx=Math.max(1,...days.map(x=>x.n));
   const C=339.292,off=(C*(1-rate/100)).toFixed(2);
-  return head('گزارش‌ها','شاخص‌ها از داده‌های ثبت‌شده در همین مرورگر محاسبه می‌شوند')+
+  return head('گزارش‌ها','مرور روند و عملکرد')+
   `<div class="stats4">
     <div class="card stat"><div><small>نرخ تکمیل وظایف</small><b>${faNum(rate)}٪</b></div><div class="stat-ic p">${ic('chart',22)}</div></div>
     <div class="card stat"><div><small>وظیفه‌های انجام‌شده</small><b>${faNum(done)}</b></div><div class="stat-ic g">${ic('check',22)}</div></div>
@@ -606,7 +606,7 @@ function analyticsPage(){
     <div class="card"><div class="card-head"><h3>${ic('spark',18)}پیشنهاد هوشمند</h3><span class="tag low">AI</span></div>
       <div class="ring-mini"><div class="ring-wrap" style="width:120px;height:120px;margin:0"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="54"/><circle class="ring-fg" cx="60" cy="60" r="54" stroke-dasharray="${C}" stroke-dashoffset="${off}"/></svg><div class="ring-num" style="font-size:24px">${faNum(rate)}٪</div></div></div>
       <div class="insight"><div class="insight-title">${ic('spark',15)}مرور پیشرفت</div><p>${total?`از ${faNum(total)} وظیفه، ${faNum(done)} مورد تکمیل شده است. برای بالا بردن تمرکز، یک کار مهم را برای بازه بعد انتخاب کن.`:'هنوز داده کافی برای پیشنهاد شخصی وجود ندارد؛ با ثبت چند وظیفه، گزارش شکل می‌گیرد.'}</p></div>
-      <p class="note-small">این پیشنهاد در نسخه فعلی محلی و نمونه است و به OpenRouter متصل نیست.</p>
+      
     </div>
     <div class="card rep-wide"><div class="card-head"><h3>${ic('bolt',18)}تعریف فرمان گزارش</h3></div>
       <div class="command-box">/report <span>[week | month]</span><br>محاسبه شاخص‌ها از داده واقعی + پیشنهاد AI<br><span>در این نسخه، گزارش به داده‌های محلی محدود است.</span></div>
@@ -614,7 +614,7 @@ function analyticsPage(){
   </div>`;
 }
 function researchPage(){
-  return head('دستیار هوشمند','پرسشت را بفرست؛ پاسخ از مدل رایگان OpenRouter می‌آید و جست‌وجوی زندهٔ وب انجام نمی‌دهد.')+
+  return head('دستیار هوشمند','پرسش‌ها و پاسخ‌های هوشمند')+
   `<div class="card deco"><form id="researchForm" class="form-grid"><label>سؤال تحقیق<textarea id="researchQuestion" rows="4" maxlength="300" placeholder="مثلاً: روش‌های ساده برای برنامه‌ریزی هفتگی چیست؟"></textarea></label><div class="form-actions"><button class="btn btn-primary">${ic('search',16)}ثبت درخواست</button></div></form><div id="researchResult"></div></div>
   <div class="card" style="margin-top:16px"><div class="card-head"><h3>${ic('link',18)}اتصال ربات تلگرام</h3></div><p class="note-small">حساب LIFEOS را امن و موقت به چت تلگرام خود پیوند بده. سپس ربات می‌تواند کارها را با داده‌های همین حساب همگام کند.</p><button class="btn btn-primary" type="button" onclick="window.connectLifeosTelegram?.()">اتصال به @MassistantNbot</button><div id="telegramStatus" style="margin-top:12px"></div><div class="command-box" style="margin-top:14px">بعد از پیوند: <span>/tasks</span>، <span>/add متن کار</span>، <span>/done شناسه</span>، <span>/report</span></div></div>`;
 }
