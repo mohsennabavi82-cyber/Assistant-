@@ -64,6 +64,71 @@ function getLocalParts(timeZone: string) {
   };
 }
 
+function validTimeZone(value: unknown) {
+  const timezone = String(value || DEFAULT_TIME_ZONE);
+  try { new Intl.DateTimeFormat("en", { timeZone: timezone }); return timezone; }
+  catch { return DEFAULT_TIME_ZONE; }
+}
+
+function localDateFor(timestamp: unknown, timeZone: string) {
+  const date = new Date(Number(timestamp));
+  if (!Number.isFinite(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function accountTimeZone(data: Record<string, any>) {
+  const saved = data?.settings?.timezone || data?.timezone;
+  if (saved) return validTimeZone(saved);
+  for (const key of ["reminders", "events"]) {
+    const items = Array.isArray(data?.[key]) ? data[key] : [];
+    const item = items.find((entry: Reminder) => entry?.timezone);
+    if (item?.timezone) return validTimeZone(item.timezone);
+  }
+  return DEFAULT_TIME_ZONE;
+}
+
+function jalaliDate(date: string, timezone: string) {
+  const value = new Date(`${date}T12:00:00Z`);
+  return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+    timeZone: timezone, day: "numeric", month: "long",
+  }).format(value);
+}
+
+function morningPlan(data: Record<string, any>, date: string, timezone: string) {
+  const items: Array<{ kind: string; title: string; time: string }> = [];
+  for (const task of Array.isArray(data.tasks) ? data.tasks : []) {
+    if (task.date === date && !task.done) items.push({ kind: "▫️ کار", title: String(task.title || "کار"), time: String(task.time || "") });
+  }
+  for (const event of Array.isArray(data.events) ? data.events : []) {
+    if (event.date === date) items.push({ kind: "📌 رویداد", title: String(event.title || "رویداد"), time: String(event.time || "") });
+  }
+  for (const reminder of Array.isArray(data.reminders) ? data.reminders : []) {
+    if (reminder.date === date) items.push({ kind: "⏰ یادآور", title: String(reminder.title || "یادآوری"), time: String(reminder.time || "") });
+  }
+  items.sort((a, b) => a.time.localeCompare(b.time));
+  const lines = [`🌅 برنامهٔ امروز LIFEOS · ${jalaliDate(date, timezone)}`, ""];
+  if (!items.length) return `${lines.join("\n")}برای امروز برنامه‌ای ثبت نشده؛ با یک کار کوچک شروع کن 🌱`;
+  lines.push(...items.slice(0, 12).map((item) => `${item.kind}${item.time ? ` · ${item.time}` : ""} — ${item.title}`));
+  if (items.length > 12) lines.push(`و ${items.length - 12} مورد دیگر…`);
+  return lines.join("\n");
+}
+
+function eveningSummary(data: Record<string, any>, date: string, timezone: string) {
+  const done = (Array.isArray(data.activity) ? data.activity : []).filter((item: Record<string, any>) =>
+    item?.type === "done" && localDateFor(item.ts, timezone) === date
+  );
+  const lines = [`🌙 جمع‌بندی امروز LIFEOS · ${jalaliDate(date, timezone)}`, ""];
+  if (!done.length) return `${lines.join("\n")}امروز کاری به‌عنوان انجام‌شده ثبت نشده. فردا فرصت تازه‌ای است 🌱`;
+  lines.push(`امروز ${new Intl.NumberFormat("fa-IR").format(done.length)} کار انجام دادی ✅`, "");
+  lines.push(...done.slice(0, 12).map((item: Record<string, any>) => `✅ ${String(item.text || "کار انجام‌شده")}`));
+  if (done.length > 12) lines.push(`و ${done.length - 12} کار دیگر…`);
+  return lines.join("\n");
+}
+
 function isDue(reminder: Reminder) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(reminder.date ?? ""))) return false;
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(reminder.time ?? ""))) return false;
@@ -82,7 +147,9 @@ function isDue(reminder: Reminder) {
   return minutesLate >= 0 && minutesLate <= 3;
 }
 
-async function claim(userId: string, reminder: Reminder, kind: "reminder" | "event", timezone: string) {
+type DeliveryKind = "reminder" | "event" | "morning" | "evening";
+
+async function claim(userId: string, reminder: Reminder, kind: DeliveryKind, timezone: string) {
   return await db("rpc/claim_lifeos_reminder_delivery", {
     method: "POST",
     body: JSON.stringify({
@@ -95,7 +162,7 @@ async function claim(userId: string, reminder: Reminder, kind: "reminder" | "eve
   }) === true;
 }
 
-async function mark(userId: string, reminder: Reminder, kind: "reminder" | "event", timezone: string, state: "sent" | "failed", error = "") {
+async function mark(userId: string, reminder: Reminder, kind: DeliveryKind, timezone: string, state: "sent" | "failed", error = "") {
   const params = new URLSearchParams({
     user_id: `eq.${userId}`,
     reminder_id: `eq.${kind}:${String(reminder.id)}`,
@@ -114,15 +181,17 @@ async function mark(userId: string, reminder: Reminder, kind: "reminder" | "even
   });
 }
 
-async function sendTelegram(chatId: number | string, reminder: Reminder, kind: "reminder" | "event") {
+async function sendTelegram(chatId: number | string, reminder: Reminder, kind: "reminder" | "event" | "morning" | "evening") {
   if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not configured");
   const heading = kind === "event" ? "📌 رویداد LIFEOS" : "⏰ یادآوری LIFEOS";
   const ending = kind === "event" ? "زمان رویدادت رسیده ✨" : "وقت انجامشه 🌱";
-  const text = `${heading}\n\n<b>${escapeHtml(String(reminder.title || (kind === "event" ? "رویداد" : "یادآوری")))}</b>\n\n${ending}`;
+  const text = kind === "morning" || kind === "evening"
+    ? String(reminder.title || "").slice(0, 3800)
+    : `${heading}\n\n<b>${escapeHtml(String(reminder.title || (kind === "event" ? "رویداد" : "یادآوری")))}</b>\n\n${ending}`;
   const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
+    body: JSON.stringify({ chat_id: chatId, text, ...((kind === "reminder" || kind === "event") ? { parse_mode: "HTML" } : {}) }),
   });
   const result = await response.json();
   if (!response.ok || !result?.ok) throw new Error(`Telegram send failed (${response.status})`);
@@ -175,6 +244,28 @@ Deno.serve(async (req: Request) => {
             try { await mark(row.user_id, item, list.kind, timezone, "failed", error instanceof Error ? error.message : String(error)); }
             catch (markError) { console.error("Could not update reminder delivery status", String(markError)); }
           }
+        }
+      }
+
+      const timezone = accountTimeZone(row.data ?? {});
+      const local = getLocalParts(timezone);
+      const digests = [
+        { kind: "morning" as const, time: "08:00", build: morningPlan },
+        { kind: "evening" as const, time: "21:00", build: eveningSummary },
+      ];
+      for (const digest of digests) {
+        const item: Reminder = { id: local.date, date: local.date, time: digest.time, timezone };
+        if (!isDue(item)) continue;
+        if (!(await claim(row.user_id, item, digest.kind, timezone))) continue;
+        try {
+          item.title = digest.build(row.data ?? {}, local.date, timezone);
+          await sendTelegram(chatId, item, digest.kind);
+          await mark(row.user_id, item, digest.kind, timezone, "sent");
+          sent++;
+        } catch (error) {
+          failed++;
+          try { await mark(row.user_id, item, digest.kind, timezone, "failed", error instanceof Error ? error.message : String(error)); }
+          catch (markError) { console.error("Could not update daily digest status", String(markError)); }
         }
       }
     }
