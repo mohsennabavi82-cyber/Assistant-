@@ -289,7 +289,7 @@ async function addScheduleItem(userId: string, data: Record<string, unknown>, ki
   }
   const id = Date.now();
   const items = Array.isArray(data[kind]) ? data[kind] as Array<Record<string, unknown>> : [];
-  items.push({ id, ...parsed, ...(kind === "reminders" ? { timezone: "Asia/Tehran" } : {}) });
+  items.push({ id, ...parsed, timezone: "Asia/Tehran" });
   data[kind] = items;
   const activity = Array.isArray(data.activity) ? data.activity as unknown[] : [];
   const label = kind === "events" ? "رویداد" : "یادآور";
