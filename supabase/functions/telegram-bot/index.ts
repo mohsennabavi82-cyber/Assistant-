@@ -145,7 +145,7 @@ const PRIVATE_KEYBOARD = {
 };
 
 const ADD_TASK_PROMPT = "✍️ عنوان کار جدید را بفرست:";
-const ADD_REMINDER_PROMPT = "⏰ یادآور را این‌طور بفرست: عنوان | تاریخ (YYYY-MM-DD) | ساعت (HH:MM)\nفقط عنوان هم بفرستی، برای امروز ثبت می‌شود.";
+const ADD_REMINDER_PROMPT = "⏰ برای دریافت پیام تلگرام، عنوان، تاریخ و ساعت را بفرست:\nعنوان | YYYY-MM-DD | HH:MM\nمثال: مصرف دارو | 2026-11-28 | 18:30\nساعت بر اساس زمان تهران است.";
 const ADD_EVENT_PROMPT = "📌 رویداد را این‌طور بفرست: عنوان | تاریخ (YYYY-MM-DD) | ساعت (HH:MM)";
 const ADD_NOTE_PROMPT = "📝 یادداشت را این‌طور بفرست: عنوان | متن یادداشت";
 const RESEARCH_PROMPT = "🔎 پرسشت را برای تحقیق بفرست:";
@@ -283,7 +283,10 @@ function parseScheduleInput(raw: string) {
 
 async function addScheduleItem(userId: string, data: Record<string, unknown>, kind: "events" | "reminders", raw: string, chatId: number) {
   const parsed = parseScheduleInput(raw);
-  if (!parsed) return await sendMessage(chatId, "قالب پیام درست نیست. این‌طور بفرست:\nعنوان | 2026-11-25 | 18:30\nساعت اختیاری است.");
+  if (!parsed) return await sendMessage(chatId, "قالب پیام درست نیست. نمونه:\nعنوان | 2026-12-01 | 18:30");
+  if (kind === "reminders" && !parsed.time) {
+    return await sendMessage(chatId, "برای اینکه پیام تلگرام سر وقت برسد، ساعت را هم وارد کن:\nعنوان | YYYY-MM-DD | HH:MM\nمثال: مصرف دارو | 2026-12-01 | 18:30");
+  }
   const id = Date.now();
   const items = Array.isArray(data[kind]) ? data[kind] as Array<Record<string, unknown>> : [];
   items.push({ id, ...parsed, ...(kind === "reminders" ? { timezone: "Asia/Tehran" } : {}) });
@@ -507,4 +510,5 @@ Deno.serve(async (req: Request) => {
     return json({ error: error instanceof Error ? error.message : "Telegram setup failed" }, 500, origin);
   }
 });
+
 
