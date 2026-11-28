@@ -1,10 +1,6 @@
 name: Build LIFEOS Android APK
 
 on:
-  push:
-    paths:
-      - 'android/**'
-      - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 
 permissions:
