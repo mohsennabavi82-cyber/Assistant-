@@ -698,7 +698,7 @@ function modal(type,date){
     if(type==='task'){data.tasks.unshift({id,title:ti,date:v.date,priority:v.priority,done:false});log('task','کار جدید: '+ti)}
     if(type==='note'){data.notes.unshift({id,title:ti,body:v.body.trim(),date:today()});log('note','یادداشت جدید: '+ti)}
     if(type==='event'){data.events.push({id,title:ti,date:v.date,time:v.time});log('event','رویداد جدید: '+ti)}
-    if(type==='reminder'){data.reminders.push({id,title:ti,date:v.date,time:v.time});log('reminder','یادآور جدید: '+ti)}
+    if(type==='reminder'){data.reminders.push({id,title:ti,date:v.date,time:v.time,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Tehran'});log('reminder','یادآور جدید: '+ti)}
     save();dlg.close();render();toast('ذخیره شد');
   };
 }
