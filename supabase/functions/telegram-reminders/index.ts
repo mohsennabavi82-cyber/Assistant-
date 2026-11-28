@@ -82,12 +82,12 @@ function isDue(reminder: Reminder) {
   return minutesLate >= 0 && minutesLate <= 3;
 }
 
-async function claim(userId: string, reminder: Reminder, timezone: string) {
+async function claim(userId: string, reminder: Reminder, kind: "reminder" | "event", timezone: string) {
   return await db("rpc/claim_lifeos_reminder_delivery", {
     method: "POST",
     body: JSON.stringify({
       p_user_id: userId,
-      p_reminder_id: String(reminder.id),
+      p_reminder_id: `${kind}:${String(reminder.id)}`,
       p_reminder_date: reminder.date,
       p_reminder_time: reminder.time,
       p_timezone: timezone,
@@ -95,10 +95,10 @@ async function claim(userId: string, reminder: Reminder, timezone: string) {
   }) === true;
 }
 
-async function mark(userId: string, reminder: Reminder, timezone: string, state: "sent" | "failed", error = "") {
+async function mark(userId: string, reminder: Reminder, kind: "reminder" | "event", timezone: string, state: "sent" | "failed", error = "") {
   const params = new URLSearchParams({
     user_id: `eq.${userId}`,
-    reminder_id: `eq.${String(reminder.id)}`,
+    reminder_id: `eq.${kind}:${String(reminder.id)}`,
     reminder_date: `eq.${reminder.date}`,
     reminder_time: `eq.${reminder.time}`,
     timezone: `eq.${timezone}`,
@@ -114,9 +114,11 @@ async function mark(userId: string, reminder: Reminder, timezone: string, state:
   });
 }
 
-async function sendTelegram(chatId: number | string, reminder: Reminder) {
+async function sendTelegram(chatId: number | string, reminder: Reminder, kind: "reminder" | "event") {
   if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not configured");
-  const text = `⏰ یادآوری LIFEOS\n\n<b>${escapeHtml(String(reminder.title || "یادآوری"))}</b>\n\nوقت انجامشه 🌱`;
+  const heading = kind === "event" ? "📌 رویداد LIFEOS" : "⏰ یادآوری LIFEOS";
+  const ending = kind === "event" ? "زمان رویدادت رسیده ✨" : "وقت انجامشه 🌱";
+  const text = `${heading}\n\n<b>${escapeHtml(String(reminder.title || (kind === "event" ? "رویداد" : "یادآوری")))}</b>\n\n${ending}`;
   const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -152,21 +154,27 @@ Deno.serve(async (req: Request) => {
     for (const row of rows ?? []) {
       const chatId = chatByUser.get(row.user_id);
       if (!chatId) continue;
-      const reminders: Reminder[] = Array.isArray(row.data?.reminders) ? row.data.reminders : [];
-      for (const reminder of reminders) {
-        if (reminder.id == null || !isDue(reminder)) continue;
-        let timezone = String(reminder.timezone || DEFAULT_TIME_ZONE);
-        try { new Intl.DateTimeFormat("en", { timeZone: timezone }); }
-        catch { timezone = DEFAULT_TIME_ZONE; }
-        if (!(await claim(row.user_id, reminder, timezone))) continue;
-        try {
-          await sendTelegram(chatId, reminder);
-          await mark(row.user_id, reminder, timezone, "sent");
-          sent++;
-        } catch (error) {
-          failed++;
-          try { await mark(row.user_id, reminder, timezone, "failed", error instanceof Error ? error.message : String(error)); }
-          catch (markError) { console.error("Could not update reminder delivery status", String(markError)); }
+      const lists: Array<{ kind: "reminder" | "event"; key: "reminders" | "events" }> = [
+        { kind: "reminder", key: "reminders" },
+        { kind: "event", key: "events" },
+      ];
+      for (const list of lists) {
+        const items: Reminder[] = Array.isArray(row.data?.[list.key]) ? row.data[list.key] : [];
+        for (const item of items) {
+          if (item.id == null || !isDue(item)) continue;
+          let timezone = String(item.timezone || DEFAULT_TIME_ZONE);
+          try { new Intl.DateTimeFormat("en", { timeZone: timezone }); }
+          catch { timezone = DEFAULT_TIME_ZONE; }
+          if (!(await claim(row.user_id, item, list.kind, timezone))) continue;
+          try {
+            await sendTelegram(chatId, item, list.kind);
+            await mark(row.user_id, item, list.kind, timezone, "sent");
+            sent++;
+          } catch (error) {
+            failed++;
+            try { await mark(row.user_id, item, list.kind, timezone, "failed", error instanceof Error ? error.message : String(error)); }
+            catch (markError) { console.error("Could not update reminder delivery status", String(markError)); }
+          }
         }
       }
     }
@@ -176,3 +184,4 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Reminder processing failed" }, 500);
   }
 });
+
