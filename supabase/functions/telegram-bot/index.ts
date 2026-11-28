@@ -145,7 +145,7 @@ const PRIVATE_KEYBOARD = {
 };
 
 const ADD_TASK_PROMPT = "✍️ عنوان کار جدید را بفرست:";
-const ADD_REMINDER_PROMPT = "⏰ برای دریافت پیام تلگرام، عنوان، تاریخ و ساعت را بفرست:\nعنوان | YYYY-MM-DD | HH:MM\nمثال: مصرف دارو | 2026-11-28 | 18:30\nساعت بر اساس زمان تهران است.";
+const ADD_REMINDER_PROMPT = "⏰ یادآور را می‌توانی طبیعی بنویسی: «فردا ساعت ۵ عصر یادم بنداز کتابم رو ببرم».\nیا این قالب را بفرست: عنوان | YYYY-MM-DD | HH:MM\nساعت بر اساس زمان تهران است.";
 const ADD_EVENT_PROMPT = "📌 رویداد را این‌طور بفرست: عنوان | تاریخ (YYYY-MM-DD) | ساعت (HH:MM)";
 const ADD_NOTE_PROMPT = "📝 یادداشت را این‌طور بفرست: عنوان | متن یادداشت";
 const RESEARCH_PROMPT = "🔎 پرسشت را برای تحقیق بفرست:";
@@ -272,6 +272,131 @@ function todayISO() {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
+function normalizeReminderText(value: string) {
+  return value
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[يى]/g, "ی").replace(/ك/g, "ک")
+    .replace(/[\u200c\u200f]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function addTehranDays(iso: string, days: number) {
+  const date = new Date(`${iso}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function tehranWeekday(iso: string) {
+  return (new Date(`${iso}T12:00:00Z`).getUTCDay() + 1) % 7; // Saturday = 0
+}
+
+function tehranMinutesNow() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Tehran", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return Number(values.hour) * 60 + Number(values.minute);
+}
+
+function parseNaturalReminder(raw: string) {
+  const text = normalizeReminderText(raw);
+  const cue = /یادم\s*(?:بنداز|بیار)|(?:به\s*من\s*)?یادآوری\s*کن|یادآور(?:م)?\s*کن|یادت\s*نره|یادم\s*نره/;
+  if (!cue.test(text)) return { handled: false as const };
+
+  const numberWords: Record<string, number> = {
+    یک: 1, یه: 1, دو: 2, سه: 3, چهار: 4, پنج: 5, شش: 6,
+    هفت: 7, هشت: 8, نه: 9, ده: 10, یازده: 11, دوازده: 12,
+  };
+  let timeMatch = text.match(/ساعت\s*(\d{1,2})(?:(?:\s*[:٫.]\s*(\d{1,2}))|(?:\s*و\s*(نیم)))?/);
+  let hour = 0, minute = 0;
+  if (timeMatch) {
+    hour = Number(timeMatch[1]);
+    minute = timeMatch[2] ? Number(timeMatch[2]) : timeMatch[3] ? 30 : 0;
+  } else {
+    const wordMatch = text.match(/ساعت\s*(یک|یه|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده)(?:\s*و\s*(نیم))?/);
+    if (wordMatch) {
+      timeMatch = wordMatch as RegExpMatchArray;
+      hour = numberWords[wordMatch[1]];
+      minute = wordMatch[2] ? 30 : 0;
+    } else {
+      return { handled: true as const, error: "ساعت را هم بگو؛ مثلاً «فردا ساعت ۵ عصر یادم بنداز کتابم رو ببرم»." };
+    }
+  }
+  if (hour < 1 || hour > 24 || minute < 0 || minute > 59 || (hour === 24 && minute !== 0)) {
+    return { handled: true as const, error: "ساعت را درست متوجه نشدم. مثلاً «فردا ساعت ۱۷:۳۰ یادم بنداز…» بنویس." };
+  }
+  const hasMorning = /صبح|بامداد/.test(text);
+  const hasEvening = /عصر|شب|بعد\s*از\s*ظهر/.test(text);
+  if (hour === 24) hour = 0;
+  else if (hasEvening && hour < 12) hour += 12;
+  else if ((hasMorning || /شب/.test(text)) && hour === 12) hour = 0;
+  else if (!hasMorning && !hasEvening && hour >= 1 && hour <= 6) hour += 12;
+  const time = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+
+  let date = todayISO();
+  let datePhrase = "";
+  let explicitDate = false;
+  const relative = text.match(/پس\s*فردا|فردا|امروز/);
+  if (relative) {
+    datePhrase = relative[0];
+    explicitDate = true;
+    date = relative[0] === "امروز" ? todayISO() : addTehranDays(todayISO(), relative[0].startsWith("پس") ? 2 : 1);
+  } else {
+    const isoMatch = text.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);
+    if (isoMatch) {
+      datePhrase = isoMatch[0];
+      explicitDate = true;
+      date = `${isoMatch[1]}-${isoMatch[2].padStart(2, "0")}-${isoMatch[3].padStart(2, "0")}`;
+    } else {
+      const weekdays = [
+        { names: ["شنبه"], day: 0 }, { names: ["یکشنبه", "یک شنبه"], day: 1 },
+        { names: ["دوشنبه", "دو شنبه"], day: 2 }, { names: ["سه شنبه"], day: 3 },
+        { names: ["چهارشنبه", "چهار شنبه"], day: 4 }, { names: ["پنجشنبه", "پنج شنبه"], day: 5 },
+        { names: ["جمعه"], day: 6 },
+      ];
+      const weekday = weekdays.flatMap((item) => item.names.map((name) => ({ name, day: item.day })))
+        .find((item) => text.includes(item.name));
+      if (weekday) {
+        datePhrase = weekday.name;
+        explicitDate = true;
+        const delta = (weekday.day - tehranWeekday(todayISO()) + 7) % 7 || 7;
+        date = addTehranDays(todayISO(), delta);
+      } else {
+        const days = text.match(/(\d{1,2})\s*روز\s*(?:دیگه|دیگر|بعد)/);
+        if (days) {
+          datePhrase = days[0];
+          explicitDate = true;
+          date = addTehranDays(todayISO(), Math.min(30, Number(days[1])));
+        }
+      }
+    }
+  }
+
+  const nowDate = todayISO();
+  if (date < nowDate) return { handled: true as const, error: "این تاریخ گذشته است؛ یک روز آینده را بگو." };
+  if (date === nowDate && hour * 60 + minute <= tehranMinutesNow()) {
+    if (explicitDate) return { handled: true as const, error: "این ساعت امروز گذشته است؛ ساعت آینده را بگو یا «فردا» را اضافه کن." };
+    date = addTehranDays(nowDate, 1);
+  }
+
+  const title = text
+    .replace(timeMatch[0], " ")
+    .replace(datePhrase, " ")
+    .replace(/(?:صبح|بامداد|بعد\s*از\s*ظهر|عصر|شب)/g, " ")
+    .replace(/لطفاً?|لطفا/g, " ")
+    .replace(cue, " ")
+    .replace(/[،,!.؟?؛:]/g, " ")
+    .replace(/\s+/g, " ").trim().slice(0, 100);
+  if (!title) return { handled: true as const, error: "عنوان یادآور را هم بنویس؛ مثلاً «فردا ساعت ۵ عصر یادم بنداز کتابم را ببرم»." };
+  return { handled: true as const, title, date, time };
+}
+
+function persianScheduleDate(iso: string) {
+  return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+    timeZone: "Asia/Tehran", day: "numeric", month: "long", year: "numeric",
+  }).format(new Date(`${iso}T12:00:00Z`));
+}
+
 function parseScheduleInput(raw: string) {
   const parts = raw.split("|").map((part) => part.trim());
   const title = parts[0]?.slice(0, 100) ?? "";
@@ -295,7 +420,7 @@ async function addScheduleItem(userId: string, data: Record<string, unknown>, ki
   const label = kind === "events" ? "رویداد" : "یادآور";
   data.activity = [{ id, type: kind === "events" ? "event" : "reminder", text: `${label} جدید: ${parsed.title}`, ts: Date.now() }, ...activity].slice(0, 30);
   await saveDashboard(userId, data);
-  await sendMessage(chatId, `${label} در LIFEOS ثبت شد ✅\n${parsed.title}\n${parsed.date}${parsed.time ? ` · ${parsed.time}` : ""}`);
+  await sendMessage(chatId, `${label} در LIFEOS ثبت شد ✅\n${parsed.title}\n${persianScheduleDate(parsed.date)}${parsed.time ? ` · ${parsed.time.replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)])}` : ""}`);
 }
 
 async function addNote(userId: string, data: Record<string, unknown>, raw: string, chatId: number) {
@@ -358,6 +483,18 @@ async function handleCallbackQuery(callback: Record<string, unknown>) {
   if (!userId) return await sendMessage(chatId, "این چت به LIFEOS وصل نیست. از داخل داشبورد دوباره اتصال تلگرام را انجام بده.");
   const data = await readDashboard(userId) as Record<string, unknown>;
   const tasks = Array.isArray(data.tasks) ? data.tasks as Array<Record<string, unknown>> : [];
+
+  const naturalReminder = parseNaturalReminder(text);
+  if (naturalReminder.handled) {
+    if (naturalReminder.error) return await sendMessage(chatId, naturalReminder.error);
+    return await addScheduleItem(
+      userId,
+      data,
+      "reminders",
+      `${naturalReminder.title} | ${naturalReminder.date} | ${naturalReminder.time}`,
+      chatId,
+    );
+  }
   const task = tasks.find((item) => String(item.id) === taskId);
   if (!task) return await sendMessage(chatId, "این کار دیگر در فهرست نیست.");
   if (task.done) return await sendMessage(chatId, "این کار قبلاً تکمیل شده است ✅");
@@ -390,7 +527,7 @@ async function handleMessage(message: Record<string, unknown>) {
   }
   if (text === "🏠 داشبورد من") return await sendDashboardButton(chatId);
   if (/^(ℹ️ راهنما|\/help)(?:\s|$)/.test(text)) {
-    return await sendMessage(chatId, "از دکمه‌های پایین برای کارها، یادآورها، یادداشت‌ها، تقویم، رویدادها، تحقیق و گزارش استفاده کن. برای دستیار هم پیام معمولی بفرست.\nمیان‌برهای متنی: /task، /done، /remind، /note، /recall، /cal، /event، /research، /report");
+    return await sendMessage(chatId, "از دکمه‌های پایین برای کارها، یادآورها، یادداشت‌ها، تقویم، رویدادها، تحقیق و گزارش استفاده کن. برای دستیار هم پیام معمولی بفرست.\nیادآور طبیعی: «فردا ساعت ۵ عصر یادم بنداز کتابم رو ببرم».\nمیان‌برهای متنی: /task، /done، /remind، /note، /recall، /cal، /event، /research، /report");
   }
 
   const userId = await userForChat(chatId);
