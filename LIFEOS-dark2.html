@@ -354,7 +354,10 @@ button{cursor:pointer;background:none;border:0}
 </style>
 <style>
 .settings-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.settings-layout .card{align-self:start}.settings-layout .form-grid{gap:14px}.settings-layout .field[readonly]{opacity:.75;cursor:default}.settings-layout .note-small{line-height:1.9}.settings-layout [data-logout]{margin-top:10px}
+.planner-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.planner-controls label{min-width:0}.planner-output{display:grid;gap:8px;margin-top:16px}.planner-summary{padding:12px 14px;border-radius:12px;background:rgba(124,92,255,.12);border:1px solid var(--line);color:#d9dcff;font-size:12px}.planner-row{display:grid;grid-template-columns:minmax(105px,auto) minmax(0,1fr);gap:12px;align-items:center;padding:11px 13px;border:1px solid rgba(150,142,255,.14);border-radius:12px;background:rgba(255,255,255,.035)}.planner-row.task{border-inline-start:3px solid var(--p1)}.planner-row.fixed{border-inline-start:3px solid var(--cyan)}.planner-row.break{border-inline-start:3px solid var(--teal);color:var(--muted)}.planner-time{direction:ltr;text-align:center;color:#aeb5e5;font-size:12px;font-weight:700}.planner-copy{min-width:0;font-size:12.5px;overflow-wrap:anywhere}.planner-copy small{display:block;color:var(--dim);font-size:10.5px;margin-top:2px}.planner-warn{margin-top:12px;color:#f6c256;font-size:12px}
 @media(max-width:720px){.settings-layout{grid-template-columns:1fr}}
+@media(max-width:900px){.planner-controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.planner-controls{grid-template-columns:1fr}.planner-row{grid-template-columns:1fr;gap:4px;text-align:right}.planner-time{text-align:right}}
 </style>
 <div id="authGate"><form class="authbox" id="authForm"><svg class="auth-logo" viewBox="-4 0 72 40" fill="none" aria-label="لوگوی LIFEOS"><defs><linearGradient id="authLogoGrad" x1="0" y1="20" x2="64" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#28d7ee"/><stop offset="1" stop-color="#8b5cff"/></linearGradient></defs><path d="M32 20C25 11 20 6 14 6a14 14 0 1 0 0 28c7 0 12-5 18-14Zm0 0C39 11 44 6 50 6a14 14 0 1 1 0 28c-7 0-12-5-18-14Z" stroke="url(#authLogoGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><h1>LIFEOS</h1><p class="auth-subtitle">Your Personal AI Assistant</p><p class="auth-help" id="authHelp">برای ادامه، وارد حساب خود شوید یا حساب جدید بسازید.</p><div id="authNameField" hidden><label for="authName">نامی که دوست داری در برنامه ببینی</label><input id="authName" type="text" maxlength="60" autocomplete="name" placeholder="مثلاً مهسا"></div><label for="authEmail">ایمیل</label><input id="authEmail" type="email" placeholder="name@example.com" autocomplete="email" required><label for="authPassword">گذرواژه</label><input id="authPassword" type="password" minlength="6" placeholder="حداقل ۶ نویسه" autocomplete="current-password" required><div class="auth-error" id="authError" aria-live="polite"></div><div class="auth-actions"><button type="submit" data-mode="login">ورود</button><button type="submit" data-mode="signup">ساخت حساب</button></div></form></div>
 
@@ -640,7 +643,61 @@ function analyticsPage(){
     <div class="card rep-wide"><div class="card-head"><h3>${ic('bolt',18)}تعریف فرمان گزارش</h3></div>
       <div class="command-box">/report <span>[week | month]</span><br>گزارش کارها و پیشنهاد هوشمند متناسب با آمار حساب</div>
     </div>
+    <section class="card rep-wide deco"><div class="card-head"><h3>${ic('spark',18)}برنامه‌ریز هوشمند روز</h3><span class="tag low">روی دستگاه</span></div>
+      <p class="note-small">کارهای باز، موعدها، رویدادها و یادآورها را در یک برنامهٔ واقع‌بینانه می‌چیند. عنوان‌ها از دستگاه خارج نمی‌شوند.</p>
+      <form id="dailyPlannerForm" class="form-grid" style="margin-top:14px"><div class="planner-controls">
+        ${jalaliDateField('plannerDate','روز برنامه',T)}
+        <label>شروع روز<input class="field" type="time" name="planStart" value="09:00" required></label>
+        <label>پایان روز<input class="field" type="time" name="planEnd" value="21:00" required></label>
+        <label>مدت هر نوبت تمرکز<select class="field" name="focusMinutes"><option value="25">۲۵ دقیقه</option><option value="45" selected>۴۵ دقیقه</option><option value="60">۶۰ دقیقه</option></select></label>
+      </div><div class="form-actions"><button class="btn btn-primary">${ic('spark',16)}چیدن برنامهٔ روز</button></div></form>
+      <div id="dailyPlannerResult" aria-live="polite"></div>
+    </section>
   </div>`;
+}
+function buildDailyPlan(targetDate,startValue,endValue,focusMinutes){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(targetDate))return {error:'تاریخ برنامه را انتخاب کن.'};
+  const toMinutes=value=>{if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(value))return NaN;const [h,m]=value.split(':').map(Number);return h*60+m};
+  let start=toMinutes(startValue),end=toMinutes(endValue);
+  if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return {error:'ساعت پایان باید بعد از ساعت شروع باشد.'};
+  if(targetDate===today()){const now=new Date(),currentMinutes=now.getHours()*60+now.getMinutes();start=Math.max(start,currentMinutes+5)}
+  if(start>=end)return {error:'بازهٔ انتخاب‌شده برای امروز گذشته است؛ ساعت شروع یا پایان را تغییر بده.'};
+  const eligible=data.tasks.filter(t=>!t.done&&(!t.date||t.date<=targetDate)).sort((a,b)=>{
+    const overdueA=!!a.date&&a.date<targetDate,overdueB=!!b.date&&b.date<targetDate;
+    if(overdueA!==overdueB)return overdueA?-1:1;
+    if(a.date&&b.date&&a.date!==b.date)return a.date.localeCompare(b.date);
+    const rank={high:0,mid:1,low:2};return (rank[a.priority]??1)-(rank[b.priority]??1);
+  });
+  const anchors=[];
+  const addAnchors=(items,kind,duration)=>items.filter(item=>item.date===targetDate&&/^([01]\d|2[0-3]):[0-5]\d$/.test(String(item.time||''))).forEach(item=>{
+    const at=toMinutes(item.time),length=Math.max(5,Number(item.duration)||duration),finish=at+length;
+    if(finish<=start||at>=end)return;
+    anchors.push({start:Math.max(start,at),end:Math.min(end,finish),kind,title:String(item.title||kind)});
+  });
+  addAnchors(data.events,'رویداد',60);addAnchors(data.reminders,'یادآور',5);
+  anchors.sort((a,b)=>a.start-b.start||a.end-b.end);
+  const fixed=[];
+  for(const anchor of anchors){const last=fixed[fixed.length-1];if(last&&anchor.start<=last.end){last.end=Math.max(last.end,anchor.end);last.labels.push(`${anchor.kind}: ${anchor.title}`)}else fixed.push({...anchor,labels:[`${anchor.kind}: ${anchor.title}`]})}
+  const blocks=[];let cursor=start,taskIndex=0,fixedIndex=0,scheduled=0;const breakMinutes=10;
+  while(cursor<end&&(taskIndex<eligible.length||fixedIndex<fixed.length)){
+    while(fixedIndex<fixed.length&&fixed[fixedIndex].end<=cursor)fixedIndex++;
+    const anchor=fixed[fixedIndex];
+    if(anchor&&anchor.start<=cursor){blocks.push({type:'fixed',start:cursor,end:anchor.end,title:anchor.labels.join(' · ')});cursor=anchor.end;fixedIndex++;continue}
+    const freeUntil=Math.min(end,anchor?anchor.start:end);
+    if(taskIndex<eligible.length&&freeUntil-cursor>=focusMinutes){const task=eligible[taskIndex++];blocks.push({type:'task',start:cursor,end:cursor+focusMinutes,title:String(task.title||'کار'),meta:task.date&&task.date<targetDate?'عقب‌افتاده':task.priority==='high'?'اولویت بالا':'تمرکز'});cursor+=focusMinutes;scheduled++;if(taskIndex<eligible.length&&cursor+breakMinutes<=Math.min(end,anchor?anchor.start:end)){blocks.push({type:'break',start:cursor,end:cursor+breakMinutes,title:'استراحت کوتاه'});cursor+=breakMinutes}continue}
+    if(anchor){cursor=Math.max(cursor,anchor.start);continue}
+    break;
+  }
+  const timeLabel=value=>faNumStr(`${String(Math.floor(value/60)).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`);
+  return {targetDate,start,end,focusMinutes,eligibleCount:eligible.length,scheduled,unplanned:eligible.length-scheduled,blocks,timeLabel};
+}
+function renderDailyPlan(plan){
+  const target=document.getElementById('dailyPlannerResult');if(!target)return;
+  if(plan.error){target.innerHTML=`<div class="planner-warn">${esc(plan.error)}</div>`;return}
+  if(!plan.blocks.length){target.innerHTML='<div class="empty">برای این بازه کار یا برنامه‌ای پیدا نشد.</div>';return}
+  const rows=plan.blocks.map(block=>{let content='';if(block.type==='task')content=`▫️ ${esc(block.title)}<small>${esc(block.meta)}</small>`;else if(block.type==='break')content=`☕ ${esc(block.title)}`;else content=`📌 ${esc(block.title)}`;return `<div class="planner-row ${block.type}"><div class="planner-time">${plan.timeLabel(block.start)} – ${plan.timeLabel(block.end)}</div><div class="planner-copy">${content}</div></div>`}).join('');
+  const warning=plan.unplanned?`<div class="planner-warn">${faNum(plan.unplanned)} کار به‌دلیل محدودیت زمان در این برنامه جا نشد.</div>`:'';
+  target.innerHTML=`<div class="planner-output"><div class="planner-summary">${fmtDate(plan.targetDate)} · ${faNum(plan.scheduled)} از ${faNum(plan.eligibleCount)} کار در برنامه جا گرفت · هر نوبت ${faNum(plan.focusMinutes)} دقیقه</div>${rows}${warning}</div>`;
 }
 let smartSuggestionRequest=0;
 async function loadSmartSuggestion(){
@@ -744,6 +801,10 @@ document.getElementById('globalSearch').addEventListener('keydown',e=>{
   e.target.blur();
 });
 document.addEventListener('submit',e=>{
+  if(e.target.id==='dailyPlannerForm'){
+    e.preventDefault();const values=Object.fromEntries(new FormData(e.target));
+    renderDailyPlan(buildDailyPlan(String(values.plannerDate||''),String(values.planStart||''),String(values.planEnd||''),Number(values.focusMinutes)||45));return;
+  }
   if(e.target.id==='settingsForm'){
     e.preventDefault();const status=document.getElementById('settingsStatus'),name=document.getElementById('settingsName').value.trim();
     status.textContent='در حال ذخیره…';window.lifeosUpdateName?.(name).then(()=>{status.textContent='نام نمایشی ذخیره شد ✅'}).catch(err=>{status.textContent=err.message||'ذخیرهٔ نام انجام نشد'});return;
@@ -768,3 +829,4 @@ window.applyLifeosCloudData=(d)=>{data=d;['tasks','notes','events','reminders','
 <script type="module" src="./supabase-app.js"></script>
 </body>
 </html>
+
